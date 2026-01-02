@@ -7,14 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User as UserModel
-from app.schemas import User, UserCreate, UserLogin, Token
+from app.schemas import User, UserCreate, UserLogin, Token, AuthResponse
 from app.utils.auth import verify_password, get_password_hash, create_access_token
 from app.utils.dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserCreate,
     db: Session = Depends(get_db)
@@ -27,7 +27,7 @@ async def register(
         db: Database session
 
     Returns:
-        Created user object
+        Created user object with access token
 
     Raises:
         HTTPException: If email already registered
@@ -55,7 +55,14 @@ async def register(
     db.commit()
     db.refresh(new_user)
 
-    return new_user
+    # Create access token for the new user
+    access_token = create_access_token(data={"sub": new_user.id})
+
+    return {
+        "user": new_user,
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 
 @router.post("/login", response_model=Token)

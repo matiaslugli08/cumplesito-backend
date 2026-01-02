@@ -37,6 +37,13 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class AuthResponse(BaseModel):
+    """Schema for authentication response (register/login with user data)"""
+    user: User
+    access_token: str
+    token_type: str = "bearer"
+
+
 class TokenData(BaseModel):
     """Schema for decoded JWT token data"""
     user_id: str | None = None
