@@ -2,7 +2,7 @@
 Wishlist items routes
 Handles CRUD operations for items within wishlists
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -10,6 +10,7 @@ from app.models import User, Wishlist, WishlistItem as WishlistItemModel
 from app.schemas import WishlistItem, WishlistItemCreate, WishlistItemUpdate, MarkAsPurchasedDTO
 from app.utils.dependencies import get_current_user
 from app.utils.url_metadata import extract_url_metadata
+from app.utils.ai_profile_generator import generate_birthday_person_profile
 
 router = APIRouter(prefix="/wishlists/{wishlist_id}/items", tags=["Wishlist Items"])
 
@@ -46,19 +47,67 @@ def verify_wishlist_owner(wishlist_id: str, user_id: str, db: Session) -> Wishli
     return wishlist
 
 
+async def regenerate_wishlist_profile(wishlist_id: str):
+    """Regenerate AI profile for wishlist after items change"""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Create a new database session for the background task
+    db = next(get_db())
+
+    try:
+        wishlist = db.query(Wishlist).filter(Wishlist.id == wishlist_id).first()
+        if not wishlist:
+            logger.warning(f"Wishlist {wishlist_id} not found for profile generation")
+            return
+
+        # Prepare items data for AI
+        items_data = [
+            {
+                "title": item.title,
+                "description": item.description or ""
+            }
+            for item in wishlist.items
+        ]
+
+        logger.info(f"Generating profile for {wishlist.owner_name} with {len(items_data)} items")
+
+        # Generate new profile
+        profile = generate_birthday_person_profile(
+            items=items_data,
+            owner_name=wishlist.owner_name,
+            description=wishlist.description
+        )
+
+        # Update wishlist with generated profile
+        wishlist.birthday_person_profile = profile
+        db.commit()
+
+        logger.info(f"Profile generated successfully for wishlist {wishlist_id}")
+
+    except Exception as e:
+        logger.error(f"Error regenerating profile: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
 @router.post("", response_model=WishlistItem, status_code=status.HTTP_201_CREATED)
 async def add_item(
     wishlist_id: str,
     item_data: WishlistItemCreate,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Add a new item to a wishlist (owner only)
+    Automatically regenerates the birthday person profile
 
     Args:
         wishlist_id: Wishlist ID
         item_data: Item creation data
+        background_tasks: FastAPI background tasks
         current_user: Current authenticated user
         db: Database session
 
@@ -66,7 +115,7 @@ async def add_item(
         Created item object
     """
     # Verify ownership
-    verify_wishlist_owner(wishlist_id, current_user.id, db)
+    wishlist = verify_wishlist_owner(wishlist_id, current_user.id, db)
 
     # If no image URL provided, try to extract from product URL
     image_url = item_data.image_url
@@ -90,6 +139,9 @@ async def add_item(
     db.add(new_item)
     db.commit()
     db.refresh(new_item)
+
+    # Regenerate profile in background with the new item
+    background_tasks.add_task(regenerate_wishlist_profile, wishlist_id)
 
     return new_item
 

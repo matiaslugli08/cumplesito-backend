@@ -14,6 +14,7 @@ class WishlistBase(BaseModel):
     owner_name: str = Field(..., min_length=1, max_length=100)
     event_date: str = Field(..., min_length=1, max_length=50)
     description: str = Field(..., min_length=1)
+    birthday_person_profile: str | None = None
     allow_anonymous_purchase: bool = True
 
 
@@ -47,6 +48,7 @@ class WishlistPublic(WishlistInDB):
             owner_id=wishlist.owner_id,
             event_date=wishlist.event_date,
             description=wishlist.description,
+            birthday_person_profile=wishlist.birthday_person_profile,
             allow_anonymous_purchase=wishlist.allow_anonymous_purchase,
             created_at=wishlist.created_at,
             updated_at=wishlist.updated_at,
@@ -71,6 +73,7 @@ class Wishlist(WishlistPublic):
             owner_id=wishlist.owner_id,
             event_date=wishlist.event_date,
             description=wishlist.description,
+            birthday_person_profile=wishlist.birthday_person_profile,
             allow_anonymous_purchase=wishlist.allow_anonymous_purchase,
             created_at=wishlist.created_at,
             updated_at=wishlist.updated_at,

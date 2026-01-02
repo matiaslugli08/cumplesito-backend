@@ -44,6 +44,7 @@ class Wishlist(Base):
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)
     event_date = Column(String(50), nullable=False)  # Store as string for flexibility
     description = Column(Text, nullable=False)
+    birthday_person_profile = Column(Text, nullable=True)  # AI-generated profile based on items
     allow_anonymous_purchase = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

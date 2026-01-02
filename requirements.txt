@@ -25,3 +25,6 @@ fastapi-cors==0.0.6
 beautifulsoup4==4.12.2
 requests==2.31.0
 lxml==4.9.3
+
+# AI for profile generation
+openai>=2.14.0

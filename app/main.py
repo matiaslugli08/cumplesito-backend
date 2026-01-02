@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, wishlists, items, metadata
+from app.routers import auth, wishlists, items, metadata, debug
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -35,6 +35,7 @@ app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(wishlists.router, prefix=settings.API_V1_PREFIX)
 app.include_router(items.router, prefix=settings.API_V1_PREFIX)
 app.include_router(metadata.router, prefix=settings.API_V1_PREFIX)
+app.include_router(debug.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/")
