@@ -13,6 +13,8 @@ from app.schemas.item import (
     WishlistItemCreate,
     WishlistItemUpdate,
     MarkAsPurchasedDTO,
+    ContributionCreate,
+    Contribution,
 )
 
 __all__ = [
@@ -28,4 +30,6 @@ __all__ = [
     "WishlistItemCreate",
     "WishlistItemUpdate",
     "MarkAsPurchasedDTO",
+    "ContributionCreate",
+    "Contribution",
 ]
