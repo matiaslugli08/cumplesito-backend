@@ -10,8 +10,8 @@ class WishlistItemBase(BaseModel):
     """Base wishlist item schema with common fields"""
     title: str = Field(..., min_length=1, max_length=200)
     description: str = Field(..., min_length=1)
-    image_url: Optional[str] = Field(None, max_length=500)  # Now optional
-    product_url: str = Field(..., min_length=1, max_length=500)
+    image_url: Optional[str] = Field(None, max_length=500)  # Optional
+    product_url: Optional[str] = Field(None, max_length=500)  # Optional - users can add items without URL
 
 
 class WishlistItemCreate(WishlistItemBase):
