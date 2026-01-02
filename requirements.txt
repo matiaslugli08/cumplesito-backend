@@ -9,9 +9,12 @@ psycopg2-binary==2.9.9
 alembic==1.13.1
 
 # Authentication and security
-python-jose[cryptography]==3.3.0
+# Usar versiones específicas sin compilación
+cryptography==41.0.7
+python-jose==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
+bcrypt==4.1.2
 
 # Pydantic for data validation
 pydantic[email]==2.5.3
