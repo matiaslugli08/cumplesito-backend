@@ -28,35 +28,39 @@ async def force_regenerate_profile(
     if not wishlist:
         raise HTTPException(status_code=404, detail="Wishlist not found")
 
-    # Prepare items data
+    # Prepare items data - EXCLUDE pooled_gift items
     items_data = [
         {
             "title": item.title,
             "description": item.description or ""
         }
         for item in wishlist.items
+        if item.item_type != "pooled_gift"  # Excluir items de tipo colecta
     ]
 
     logger.info(f"🔧 DEBUG: Wishlist owner: {wishlist.owner_name}")
+    logger.info(f"🔧 DEBUG: Wishlist title: {wishlist.title}")
     logger.info(f"🔧 DEBUG: Description: {wishlist.description}")
-    logger.info(f"🔧 DEBUG: Items count: {len(items_data)}")
+    logger.info(f"🔧 DEBUG: Items count: {len(items_data)} (excluding pooled gifts)")
     logger.info(f"🔧 DEBUG: Items: {items_data}")
 
-    # Generate profile
+    # Generate profile (only if there are items)
     profile = generate_birthday_person_profile(
         items=items_data,
         owner_name=wishlist.owner_name,
-        description=wishlist.description
+        description=wishlist.description,
+        wishlist_title=wishlist.title
     )
 
-    # Update wishlist
-    wishlist.birthday_person_profile = profile
+    # Update wishlist (or None if no profile was generated)
+    wishlist.birthday_person_profile = profile if profile else None
     db.commit()
     db.refresh(wishlist)
 
     return {
         "success": True,
         "wishlist_id": wishlist_id,
-        "profile": profile,
-        "items_analyzed": len(items_data)
+        "profile": profile if profile else "No profile generated (no items)",
+        "items_analyzed": len(items_data),
+        "profile_generated": bool(profile)
     }

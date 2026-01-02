@@ -36,26 +36,28 @@ async def generate_and_update_profile(wishlist_id: str):
             logger.warning(f"Wishlist {wishlist_id} not found for profile generation")
             return
 
-        # Prepare items data for AI
+        # Prepare items data for AI - EXCLUDE pooled_gift items
         items_data = [
             {
                 "title": item.title,
                 "description": item.description or ""
             }
             for item in wishlist.items
+            if item.item_type != "pooled_gift"  # Excluir items de tipo colecta
         ]
 
-        logger.info(f"Generating profile for {wishlist.owner_name} with {len(items_data)} items")
+        logger.info(f"Generating profile for {wishlist.owner_name} with {len(items_data)} items (excluding pooled gifts)")
 
-        # Generate profile
+        # Generate profile (only if there are items)
         profile = generate_birthday_person_profile(
             items=items_data,
             owner_name=wishlist.owner_name,
-            description=wishlist.description
+            description=wishlist.description,
+            wishlist_title=wishlist.title
         )
 
-        # Update wishlist with generated profile
-        wishlist.birthday_person_profile = profile
+        # Update wishlist with generated profile (or None if no profile was generated)
+        wishlist.birthday_person_profile = profile if profile else None
         db.commit()
 
         logger.info(f"Profile generated successfully for wishlist {wishlist_id}")

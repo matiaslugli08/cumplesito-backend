@@ -10,14 +10,15 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-def generate_birthday_person_profile(items: List[Dict], owner_name: str, description: str) -> str:
+def generate_birthday_person_profile(items: List[Dict], owner_name: str, description: str, wishlist_title: str = "") -> str:
     """
     Generate a personalized profile of the birthday person based on their wishlist items
 
     Args:
-        items: List of wishlist items (title, description, product_url)
+        items: List of wishlist items (title, description, product_url). Should NOT include pooled_gift items.
         owner_name: Name of the birthday person
         description: Wishlist description
+        wishlist_title: Title of the wishlist (optional but recommended)
 
     Returns:
         Generated profile text describing the person's interests and personality
@@ -26,17 +27,18 @@ def generate_birthday_person_profile(items: List[Dict], owner_name: str, descrip
         logger.info("="*80)
         logger.info("🎂 INICIANDO GENERACIÓN DE PERFIL")
         logger.info(f"📝 Nombre del cumpleañero: {owner_name}")
+        logger.info(f"🎯 Título de la lista: {wishlist_title}")
         logger.info(f"📋 Descripción de la lista: {description}")
         logger.info(f"🎁 Número de items: {len(items)}")
         logger.info(f"🎁 Items recibidos: {items}")
 
+        # If no items, don't generate profile - return empty string
+        if not items or len(items) == 0:
+            logger.warning("⚠️ No hay items (o solo hay colectas), NO se generará perfil con AI")
+            return ""
+
         # Initialize OpenAI client
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
-        # If no items, generate profile from description only
-        if not items:
-            logger.warning("⚠️ No hay items, generando perfil solo con descripción")
-            return _generate_profile_from_description(client, owner_name, description)
 
         # Build context from items
         items_text = "\n".join([
@@ -46,28 +48,35 @@ def generate_birthday_person_profile(items: List[Dict], owner_name: str, descrip
 
         logger.info(f"📦 Texto de items preparado:\n{items_text}")
 
-        # Create prompt for OpenAI
-        prompt = f"""Analiza los productos de la lista de {owner_name} y genera un perfil breve y directo.
+        # Build context with optional title
+        title_context = f"\nTítulo de la lista: {wishlist_title}" if wishlist_title else ""
 
-Descripción: {description}
+        # Create prompt for OpenAI - oriented for friends to understand the person
+        prompt = f"""Eres un asistente que ayuda a los amigos y familiares a conocer mejor a la persona que celebra su cumpleaños, basándote en los productos que eligió para su lista de deseos.
 
-Productos:
+Nombre: {owner_name}{title_context}
+Descripción de la lista: {description}
+
+Productos en su lista:
 {items_text}
 
-Genera un perfil de 2-3 párrafos cortos que siga este formato:
-- Primer párrafo: "A '{owner_name}' le gustan los productos de [tipo/categoría]. Muestra interés en [categorías específicas]."
-- Segundo párrafo: Menciona los tipos de productos específicos y qué revelan sobre sus gustos
-- Tercer párrafo: Conclusión simple sobre qué tipo de regalos le gustarían
+Tu tarea: Analiza estos productos y genera un perfil de 2-3 párrafos que ayude a los amigos a entender mejor los gustos, intereses y personalidad de {owner_name}. Este perfil es para que los invitados puedan elegir el regalo perfecto o conocer mejor a {owner_name}.
 
-Instrucciones:
-- Usa el formato directo: "A [nombre] le gustan...", "Muestra interés en..."
-- Identifica las categorías principales (tecnología, deportes, hogar, etc.)
-- Sé específico sobre los tipos de productos
-- Máximo 3 párrafos cortos
-- No uses saludos ni introduciones largas
-- Escribe en tercera persona
+Formato esperado:
+- Párrafo 1: Describe las principales categorías de interés de {owner_name} (ej: tecnología, deportes, lectura, moda, etc.) basándote en los productos. Sé específico sobre QUÉ le gusta exactamente.
+- Párrafo 2: Profundiza en su personalidad y estilo de vida. ¿Qué revelan estos productos sobre {owner_name}? (ej: es aventurero, creativo, hogareño, deportista, etc.)
+- Párrafo 3: Sugiere tipos de regalos alternativos o complementarios que encajarían con su perfil, considerando el contexto del título y descripción de la lista.
 
-Escribe en español."""
+Instrucciones importantes:
+- Escribe en tercera persona ("A {owner_name} le encanta...", "{owner_name} tiene un gusto por...")
+- Sé observador y perspicaz - conecta los productos con rasgos de personalidad
+- Usa el título de la lista como contexto adicional para entender la ocasión y preferencias
+- Sé cálido, positivo y descriptivo
+- Si ves patrones claros (ej: todo tecnología, todo deportivo), mencionalo específicamente
+- Ayuda a los amigos a entender no solo QUÉ le gusta, sino QUIÉN es {owner_name}
+- Máximo 3 párrafos, cada uno de 2-3 oraciones
+
+Escribe en español, de forma natural y amigable."""
 
         logger.info("🤖 PROMPT ENVIADO A OPENAI:")
         logger.info(prompt)
@@ -79,15 +88,15 @@ Escribe en español."""
             messages=[
                 {
                     "role": "system",
-                    "content": "Eres un asistente que analiza listas de productos y crea perfiles concisos y directos. Escribes de forma clara, específica y sin rodeos. Usas el formato: 'A [nombre] le gustan los productos de [tipo]. Muestra interés en [categorías].' Siempre escribes en tercera persona."
+                    "content": "Eres un asistente experto en analizar gustos y preferencias de personas basándote en sus elecciones de productos. Tu objetivo es ayudar a amigos y familiares a conocer mejor a la persona del cumpleaños para elegir el regalo perfecto. Escribes perfiles perspicaces, cálidos y descriptivos que revelan personalidad e intereses. Siempre escribes en tercera persona y en español."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            max_tokens=300,
-            temperature=0.6,
+            max_tokens=400,
+            temperature=0.7,
         )
 
         # Extract generated profile
@@ -102,62 +111,26 @@ Escribe en español."""
     except Exception as e:
         logger.error(f"❌ Error generating AI profile: {e}")
         logger.exception(e)
-        # Return a fallback profile
-        return _generate_fallback_profile(owner_name, description, items)
+        # Return a fallback profile (only if there are items)
+        return _generate_fallback_profile(owner_name, description, items, wishlist_title)
 
 
-def _generate_profile_from_description(client: OpenAI, owner_name: str, description: str) -> str:
-    """Generate profile when no items are available yet"""
-    try:
-        prompt = f"""Crea un perfil breve y amigable para {owner_name} basándote en esta descripción de su lista de cumpleaños:
-
-"{description}"
-
-Genera un perfil de 1-2 párrafos que:
-1. Capte la esencia de lo que describe
-2. Sea positivo y celebratorio
-3. Use un tono cálido y personal
-
-Escribe en español."""
-
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Eres un asistente que crea perfiles personales amigables y cálidos."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            max_tokens=200,
-            temperature=0.7,
-        )
-
-        return response.choices[0].message.content.strip()
-
-    except Exception as e:
-        logger.error(f"Error generating profile from description: {e}")
-        return _generate_fallback_profile(owner_name, description, [])
-
-
-def _generate_fallback_profile(owner_name: str, description: str, items: List[Dict]) -> str:
+def _generate_fallback_profile(owner_name: str, description: str, items: List[Dict], wishlist_title: str = "") -> str:
     """Generate a simple fallback profile when AI fails"""
-    if items:
-        item_count = len(items)
-        return f"""{owner_name} tiene gustos variados e interesantes! Con {item_count} {'producto' if item_count == 1 else 'productos'} en su lista, podemos ver que disfruta de cosas especiales y únicas.
+    # If no items, don't generate a profile
+    if not items or len(items) == 0:
+        logger.warning("No items available, skipping fallback profile generation")
+        return ""
+
+    # Only generate fallback if there are items but AI failed
+    title_mention = f" para '{wishlist_title}'" if wishlist_title else ""
+    item_count = len(items)
+
+    return f"""{owner_name} ha preparado una lista especial{title_mention} con {item_count} {'producto' if item_count == 1 else 'productos'} cuidadosamente seleccionados que reflejan sus gustos únicos.
 
 {description}
 
-¡Cualquier regalo que elijas de su lista seguramente le encantará! 🎁"""
-    else:
-        return f"""{owner_name} está creando su lista de deseos perfecta para este año!
-
-{description}
-
-¡Pronto habrá productos increíbles para elegir! 🎁"""
+Cada regalo en esta lista ha sido elegido pensando en lo que realmente le gusta, así que cualquier opción será perfecta. ¡Ayuda a hacer su día especial! 🎁"""
 
 
 def should_regenerate_profile(
