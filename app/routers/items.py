@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, Wishlist, WishlistItem as WishlistItemModel
-from app.schemas import WishlistItem, WishlistItemCreate, WishlistItemUpdate, MarkAsPurchasedDTO
+from app.models import User, Wishlist, WishlistItem as WishlistItemModel, Contribution as ContributionModel
+from app.schemas import WishlistItem, WishlistItemCreate, WishlistItemUpdate, MarkAsPurchasedDTO, ContributionCreate, Contribution
 from app.utils.dependencies import get_current_user
 from app.utils.url_metadata import extract_url_metadata
 from app.utils.ai_profile_generator import generate_birthday_person_profile
@@ -342,3 +342,109 @@ async def unmark_as_purchased(
     db.refresh(item)
 
     return item
+
+
+@router.post("/{item_id}/contribute", response_model=WishlistItem)
+async def contribute_to_pooled_gift(
+    wishlist_id: str,
+    item_id: str,
+    contribution_data: ContributionCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Contribute to a pooled gift item (public access - no auth required)
+
+    Args:
+        wishlist_id: Wishlist ID
+        item_id: Item ID
+        contribution_data: Contribution data (name, amount, message)
+        db: Database session
+
+    Returns:
+        Updated item object with contribution
+
+    Raises:
+        HTTPException: If wishlist/item not found or item is not a pooled gift
+    """
+    # Verify wishlist exists
+    wishlist = db.query(Wishlist).filter(Wishlist.id == wishlist_id).first()
+    if not wishlist:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Wishlist not found"
+        )
+
+    # Find item
+    item = db.query(WishlistItemModel).filter(
+        WishlistItemModel.id == item_id,
+        WishlistItemModel.wishlist_id == wishlist_id
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found"
+        )
+
+    # Verify it's a pooled gift
+    if item.item_type != "pooled_gift":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This item is not a pooled gift"
+        )
+
+    # Create contribution
+    contribution = ContributionModel(
+        item_id=item_id,
+        contributor_name=contribution_data.contributor_name,
+        amount=contribution_data.amount,
+        message=contribution_data.message
+    )
+
+    # Update item's current amount
+    item.current_amount = (item.current_amount or 0.0) + contribution_data.amount
+
+    # Mark as purchased if target reached
+    if item.target_amount and item.current_amount >= item.target_amount:
+        item.is_purchased = True
+
+    db.add(contribution)
+    db.commit()
+    db.refresh(item)
+
+    return item
+
+
+@router.get("/{item_id}/contributions", response_model=list[Contribution])
+async def get_item_contributions(
+    wishlist_id: str,
+    item_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all contributions for a pooled gift item (public access)
+
+    Args:
+        wishlist_id: Wishlist ID
+        item_id: Item ID
+        db: Database session
+
+    Returns:
+        List of contributions
+
+    Raises:
+        HTTPException: If wishlist or item not found
+    """
+    # Verify wishlist and item exist
+    item = db.query(WishlistItemModel).filter(
+        WishlistItemModel.id == item_id,
+        WishlistItemModel.wishlist_id == wishlist_id
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found"
+        )
+
+    return item.contributions
