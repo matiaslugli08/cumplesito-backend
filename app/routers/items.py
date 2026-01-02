@@ -133,7 +133,10 @@ async def add_item(
         title=item_data.title,
         description=item_data.description,
         image_url=image_url,
-        product_url=item_data.product_url
+        product_url=item_data.product_url,
+        item_type=item_data.item_type,
+        target_amount=item_data.target_amount,
+        current_amount=0.0 if item_data.item_type == 'pooled_gift' else None
     )
 
     db.add(new_item)
