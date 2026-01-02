@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, Wishlist, WishlistItem as WishlistItemModel, Contribution as ContributionModel
-from app.schemas import WishlistItem, WishlistItemCreate, WishlistItemUpdate, MarkAsPurchasedDTO, ContributionCreate, Contribution
+from app.schemas import WishlistItem, WishlistItemCreate, WishlistItemUpdate, MarkAsPurchasedDTO, ContributionCreate, Contribution, ReserveItemDTO
 from app.utils.dependencies import get_current_user
 from app.utils.url_metadata import extract_url_metadata
 from app.utils.ai_profile_generator import generate_birthday_person_profile
@@ -451,3 +451,127 @@ async def get_item_contributions(
         )
 
     return item.contributions
+
+
+@router.post("/{item_id}/reserve", response_model=WishlistItem)
+async def reserve_item(
+    wishlist_id: str,
+    item_id: str,
+    reserve_data: ReserveItemDTO,
+    db: Session = Depends(get_db)
+):
+    """
+    Reserve an item (public access - no auth required)
+    Only works for normal items, not pooled gifts
+
+    Args:
+        wishlist_id: Wishlist ID
+        item_id: Item ID
+        reserve_data: Reservation data (reserved_by name)
+        db: Database session
+
+    Returns:
+        Updated item object
+
+    Raises:
+        HTTPException: If wishlist/item not found or item is already reserved/purchased
+    """
+    # Verify wishlist exists
+    wishlist = db.query(Wishlist).filter(Wishlist.id == wishlist_id).first()
+    if not wishlist:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Wishlist not found"
+        )
+
+    # Find item
+    item = db.query(WishlistItemModel).filter(
+        WishlistItemModel.id == item_id,
+        WishlistItemModel.wishlist_id == wishlist_id
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found"
+        )
+
+    # Cannot reserve pooled gifts
+    if item.item_type == "pooled_gift":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot reserve pooled gifts. Use contribute instead."
+        )
+
+    # Check if already purchased
+    if item.is_purchased:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Item is already purchased"
+        )
+
+    # Check if already reserved
+    if item.is_reserved:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Item is already reserved by {item.reserved_by}"
+        )
+
+    # Reserve the item
+    item.is_reserved = True
+    item.reserved_by = reserve_data.reserved_by
+
+    db.commit()
+    db.refresh(item)
+
+    return item
+
+
+@router.delete("/{item_id}/reserve", response_model=WishlistItem)
+async def unreserve_item(
+    wishlist_id: str,
+    item_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Unreserve an item (public access - no auth required)
+
+    Args:
+        wishlist_id: Wishlist ID
+        item_id: Item ID
+        db: Database session
+
+    Returns:
+        Updated item object
+
+    Raises:
+        HTTPException: If wishlist or item not found
+    """
+    # Verify wishlist exists
+    wishlist = db.query(Wishlist).filter(Wishlist.id == wishlist_id).first()
+    if not wishlist:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Wishlist not found"
+        )
+
+    # Find item
+    item = db.query(WishlistItemModel).filter(
+        WishlistItemModel.id == item_id,
+        WishlistItemModel.wishlist_id == wishlist_id
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found"
+        )
+
+    # Unreserve the item
+    item.is_reserved = False
+    item.reserved_by = None
+
+    db.commit()
+    db.refresh(item)
+
+    return item

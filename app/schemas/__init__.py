@@ -15,6 +15,7 @@ from app.schemas.item import (
     MarkAsPurchasedDTO,
     ContributionCreate,
     Contribution,
+    ReserveItemDTO,
 )
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "MarkAsPurchasedDTO",
     "ContributionCreate",
     "Contribution",
+    "ReserveItemDTO",
 ]

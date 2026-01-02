@@ -2,7 +2,7 @@
 -- Run this SQL script in your database
 
 -- Step 1: Add new columns to wishlist_items table
-ALTER TABLE wishlist_items 
+ALTER TABLE wishlist_items
 ADD COLUMN IF NOT EXISTS item_type VARCHAR(20) DEFAULT 'normal' NOT NULL,
 ADD COLUMN IF NOT EXISTS target_amount FLOAT,
 ADD COLUMN IF NOT EXISTS current_amount FLOAT DEFAULT 0.0;
@@ -26,4 +26,3 @@ CREATE INDEX IF NOT EXISTS idx_wishlist_items_type ON wishlist_items(item_type);
 ALTER TABLE wishlist_items ALTER COLUMN product_url DROP NOT NULL;
 
 COMMIT;
-

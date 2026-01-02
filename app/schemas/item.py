@@ -34,7 +34,7 @@ class WishlistItemBase(BaseModel):
     description: str = Field(..., min_length=1)
     image_url: Optional[str] = Field(None, max_length=500)  # Optional
     product_url: Optional[str] = Field(None, max_length=500)  # Optional - users can add items without URL
-    
+
     # Pooled gift fields
     item_type: Literal["normal", "pooled_gift"] = "normal"
     target_amount: Optional[float] = Field(None, gt=0)  # Required if item_type is pooled_gift
@@ -60,6 +60,8 @@ class WishlistItem(WishlistItemBase):
     id: str
     is_purchased: bool = False
     purchased_by: Optional[str] = None
+    is_reserved: bool = False
+    reserved_by: Optional[str] = None
     current_amount: Optional[float] = 0.0  # For pooled gifts
     contributions: List[Contribution] = []  # List of contributions
     created_at: datetime
@@ -72,3 +74,8 @@ class WishlistItem(WishlistItemBase):
 class MarkAsPurchasedDTO(BaseModel):
     """Schema for marking an item as purchased"""
     purchased_by: str = Field(..., min_length=1, max_length=100)
+
+
+class ReserveItemDTO(BaseModel):
+    """Schema for reserving an item"""
+    reserved_by: str = Field(..., min_length=1, max_length=100)

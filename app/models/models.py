@@ -77,11 +77,15 @@ class WishlistItem(Base):
     is_purchased = Column(Boolean, default=False, nullable=False)
     purchased_by = Column(String(100), nullable=True)
     
+    # Reserved state (for normal items)
+    is_reserved = Column(Boolean, default=False, nullable=False)
+    reserved_by = Column(String(100), nullable=True)
+    
     # Pooled gift (colecta) fields
     item_type = Column(String(20), default="normal", nullable=False)  # "normal" or "pooled_gift"
     target_amount = Column(Float, nullable=True)  # Monto objetivo para colectas
     current_amount = Column(Float, default=0.0, nullable=True)  # Monto actual recolectado
-    
+
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
