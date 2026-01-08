@@ -33,6 +33,11 @@ class User(UserBase):
         from_attributes = True
 
 
+class UserMeUpdate(BaseModel):
+    """Schema for updating current user's profile"""
+    birthday: date = Field(..., description="User birth date (YYYY-MM-DD)")
+
+
 class Token(BaseModel):
     """Schema for JWT token response"""
     access_token: str

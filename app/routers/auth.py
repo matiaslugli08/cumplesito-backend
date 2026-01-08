@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User as UserModel
-from app.schemas import User, UserCreate, UserLogin, Token, AuthResponse
+from app.schemas import User, UserCreate, UserLogin, Token, AuthResponse, UserMeUpdate
 from app.utils.auth import verify_password, get_password_hash, create_access_token
 from app.utils.dependencies import get_current_user
 
@@ -117,3 +117,39 @@ async def get_current_user_info(
         Current user object
     """
     return current_user
+
+
+@router.patch("/me", response_model=User)
+async def update_current_user_info(
+    body: UserMeUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Update current authenticated user profile fields (currently: birthday).
+    """
+    user = db.query(UserModel).filter(UserModel.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.birthday = body.birthday
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.put("/me", response_model=User)
+async def put_current_user_info(
+    body: UserMeUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Same as PATCH /me (some environments prefer PUT over PATCH).
+    """
+    user = db.query(UserModel).filter(UserModel.id == current_user.id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user.birthday = body.birthday
+    db.commit()
+    db.refresh(user)
+    return user

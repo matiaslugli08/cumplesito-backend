@@ -1,7 +1,7 @@
 """
 Pydantic schemas for request/response validation
 """
-from app.schemas.user import User, UserCreate, UserLogin, Token, AuthResponse
+from app.schemas.user import User, UserCreate, UserLogin, Token, AuthResponse, UserMeUpdate
 from app.schemas.wishlist import (
     Wishlist,
     WishlistCreate,
@@ -37,6 +37,7 @@ __all__ = [
     "UserLogin",
     "Token",
     "AuthResponse",
+    "UserMeUpdate",
     "Wishlist",
     "WishlistCreate",
     "WishlistInDB",
