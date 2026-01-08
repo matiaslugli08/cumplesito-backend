@@ -29,6 +29,23 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = "http://localhost:5173"
 
+    # ---------------------------------------------------------------------
+    # Email reminders (optional)
+    # ---------------------------------------------------------------------
+    EMAIL_REMINDERS_ENABLED: bool = False
+    EMAIL_TIMEZONE: str = "America/Montevideo"
+    EMAIL_DAILY_HOUR: int = 9  # 09:00 local
+    EMAIL_DAILY_MINUTE: int = 0
+
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM: str | None = None
+    SMTP_USE_TLS: bool = True
+
+    FRONTEND_BASE_URL: str = "http://localhost:5173"
+
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v):

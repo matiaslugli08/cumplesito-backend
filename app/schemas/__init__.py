@@ -17,6 +17,19 @@ from app.schemas.item import (
     Contribution,
     ReserveItemDTO,
 )
+from app.schemas.group import (
+    GroupCreate,
+    GroupUpdate,
+    GroupSummary,
+    GroupDetail,
+    InviteInfo,
+    InviteJoinResponse,
+    CreateInviteResponse,
+    ExpenseCreate,
+    ExpenseOut,
+    DebtOut,
+    DebtUpdate,
+)
 
 __all__ = [
     "User",
@@ -35,4 +48,15 @@ __all__ = [
     "ContributionCreate",
     "Contribution",
     "ReserveItemDTO",
+    "GroupCreate",
+    "GroupUpdate",
+    "GroupSummary",
+    "GroupDetail",
+    "InviteInfo",
+    "InviteJoinResponse",
+    "CreateInviteResponse",
+    "ExpenseCreate",
+    "ExpenseOut",
+    "DebtOut",
+    "DebtUpdate",
 ]

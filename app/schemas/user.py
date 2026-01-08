@@ -1,7 +1,7 @@
 """
 Pydantic schemas for user authentication
 """
-from datetime import datetime
+from datetime import datetime, date
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -14,6 +14,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema for user registration"""
     password: str = Field(..., min_length=6, max_length=100)
+    birthday: date = Field(..., description="User birth date (YYYY-MM-DD)")
 
 
 class UserLogin(BaseModel):
@@ -25,6 +26,7 @@ class UserLogin(BaseModel):
 class User(UserBase):
     """Schema for user response"""
     id: str
+    birthday: date | None = None
     created_at: datetime
 
     class Config:

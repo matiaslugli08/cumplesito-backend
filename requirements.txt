@@ -23,3 +23,6 @@ lxml==4.9.3
 
 # AI for profile generation
 openai>=2.14.0
+
+# Scheduling (email reminders)
+APScheduler==3.10.4

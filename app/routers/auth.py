@@ -48,7 +48,8 @@ async def register(
     new_user = UserModel(
         name=user_data.name,
         email=user_data.email,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        birthday=user_data.birthday,
     )
 
     db.add(new_user)
