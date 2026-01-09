@@ -135,21 +135,3 @@ async def update_current_user_info(
     db.commit()
     db.refresh(user)
     return user
-
-
-@router.put("/me", response_model=User)
-async def put_current_user_info(
-    body: UserMeUpdate,
-    current_user: UserModel = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Same as PATCH /me (some environments prefer PUT over PATCH).
-    """
-    user = db.query(UserModel).filter(UserModel.id == current_user.id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    user.birthday = body.birthday
-    db.commit()
-    db.refresh(user)
-    return user

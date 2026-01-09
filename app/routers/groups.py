@@ -274,6 +274,10 @@ async def create_expense(
 ):
     _get_group_for_member(db, group_id, current_user.id)
 
+    # Prevent selecting yourself as honoree for an expense you are creating
+    if body.birthday_user_id == current_user.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="birthday_user_id cannot be the payer")
+
     # birthday user must be member
     birthday_member = (
         db.query(GroupMember)
